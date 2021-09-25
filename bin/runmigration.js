@@ -80,18 +80,19 @@ let migrationFiles = fs.readdirSync(migrationsDir)
 if (options.list)
   process.exit(0);
 
-async function executeSql(queryInterface, sql) {
+async function executeSql(queryInterface, sql, {type = queryInterface.sequelize.QueryTypes.SELECT} = {}) {
   return queryInterface.sequelize.query(
-    sql, {
-    type: queryInterface.sequelize.QueryTypes.SELECT
-  });
+    sql, {type},
+  );
 }
 
 (async () => {
-  let createIfNot = await executeSql(queryInterface,
-    'CREATE TABLE IF NOT EXISTS "SequelizeMeta" (name varchar UNIQUE)'
-    );
-  let res = await executeSql(queryInterface, 'select * from "SequelizeMeta"');
+  let createIfNot = await executeSql(
+    queryInterface,
+    'CREATE TABLE IF NOT EXISTS `SequelizeMeta` (name varchar(255) UNIQUE)',
+    {type: queryInterface.sequelize.QueryTypes.RAW},
+  );
+  let res = await executeSql(queryInterface, 'select * from `SequelizeMeta`');
   let ranMigrations = res.map(r => r.name);
   migrationFiles = migrationFiles.filter(mf => {
     return (!ranMigrations.includes(mf));
@@ -102,7 +103,11 @@ async function executeSql(queryInterface, sql) {
 
   for (let file of migrationFiles) {
     await migrate.executeMigration(queryInterface, path.join(migrationsDir, file), fromPos);
-    await executeSql(queryInterface, `INSERT INTO "SequelizeMeta" ("name") VALUES ('${file}')`);
+    await executeSql(
+      queryInterface,
+      `INSERT INTO \`SequelizeMeta\` (name) VALUES ('${file}')`,
+      {type: queryInterface.sequelize.QueryTypes.INSERT},
+    );
     fromPos = 0;
   }
 
