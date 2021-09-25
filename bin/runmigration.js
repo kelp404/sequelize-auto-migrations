@@ -3,6 +3,7 @@
 const path = require("path");
 const commandLineArgs = require('command-line-args');
 const fs = require("fs");
+const Sequelize = require('sequelize');
 
 const migrate = require("../lib/migrate");
 const pathConfig = require('../lib/pathconfig');
@@ -80,20 +81,23 @@ let migrationFiles = fs.readdirSync(migrationsDir)
 if (options.list)
   process.exit(0);
 
-async function executeSql(queryInterface, sql, {type = queryInterface.sequelize.QueryTypes.SELECT} = {}) {
-  return queryInterface.sequelize.query(
-    sql, {type},
-  );
-}
-
 (async () => {
-  let createIfNot = await executeSql(
-    queryInterface,
-    'CREATE TABLE IF NOT EXISTS `SequelizeMeta` (name varchar(255) UNIQUE)',
-    {type: queryInterface.sequelize.QueryTypes.RAW},
+  await queryInterface.createTable('SequelizeMeta', {
+    name: {
+      type: Sequelize.STRING,
+      allowNull: false,
+      unique: true,
+    },
+  });
+  const results = await queryInterface.rawSelect(
+    'SequelizeMeta',
+    {
+      where: {},
+      plain: false,
+    },
+    ['name'],
   );
-  let res = await executeSql(queryInterface, 'select * from `SequelizeMeta`');
-  let ranMigrations = res.map(r => r.name);
+  let ranMigrations = results.map(r => r.name);
   migrationFiles = migrationFiles.filter(mf => {
     return (!ranMigrations.includes(mf));
   })
@@ -103,11 +107,9 @@ async function executeSql(queryInterface, sql, {type = queryInterface.sequelize.
 
   for (let file of migrationFiles) {
     await migrate.executeMigration(queryInterface, path.join(migrationsDir, file), fromPos);
-    await executeSql(
-      queryInterface,
-      `INSERT INTO \`SequelizeMeta\` (name) VALUES ('${file}')`,
-      {type: queryInterface.sequelize.QueryTypes.INSERT},
-    );
+    await queryInterface.bulkInsert('SequelizeMeta', [{
+      name: file,
+    }]);
     fromPos = 0;
   }
 
