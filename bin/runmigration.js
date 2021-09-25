@@ -3,7 +3,6 @@
 const path = require("path");
 const commandLineArgs = require('command-line-args');
 const fs = require("fs");
-const Async = require("async");
 
 const migrate = require("../lib/migrate");
 const pathConfig = require('../lib/pathconfig');

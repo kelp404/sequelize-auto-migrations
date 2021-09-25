@@ -30,7 +30,6 @@
   },
   "homepage": "https://github.com/flexxnn/sequelize-auto-migrations#readme",
   "dependencies": {
-    "async": "^2.5.1",
     "command-line-args": "^5.0.2",
     "deep-diff": "^0.3.8",
     "js-beautify": "^1.8.9",
